@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Food Gang's Flower Stealer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        canvas {
+            display: block;
+            image-rendering: auto;
+            width: 100vw;
+            height: 100vh;
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            padding: calc(env(safe-area-inset-top) + 10px) 15px env(safe-area-inset-bottom) 15px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        .dialog-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 50;
+            padding: 20px;
+        }
+        .menu-card {
+            background: rgba(20, 10, 20, 0.98);
+            border: 3px solid #ff4d6d;
+            padding: 1.25rem;
+            text-align: center;
+            pointer-events: auto;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 420px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 0 40px rgba(255, 77, 109, 0.4);
+        }
+        .btn {
+            background: linear-gradient(180deg, #ff758f 0%, #ff4d6d 100%);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            font-size: 1.25rem;
+            font-weight: 900;
+            cursor: pointer;
+            border-radius: 50px;
+            box-shadow: 0 4px 0 #c9184a;
+            transition: all 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #c9184a;
+        }
+        .instruction-grid {
+            display: grid;
+            grid-template-columns: 32px 1fr;
+            gap: 8px;
+            text-align: left;
+            margin: 10px 0;
+            font-size: 0.85rem;
+            line-height: 1.2;
+        }
+        /* Custom scrollbar for the menu card on mobile */
+        .menu-card::-webkit-scrollbar {
+            width: 4px;
+        }
+        .menu-card::-webkit-scrollbar-thumb {
+            background: #ff4d6d;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-overlay">
+        <!-- Responsive HUD -->
+        <div class="flex justify-between items-start w-full max-w-4xl mx-auto">
+            <div class="bg-black/60 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-pink-500/30 flex items-center gap-3">
+                <span class="text-xl md:text-2xl">🌸</span>
+                <div>
+                    <div class="text-[10px] uppercase font-bold opacity-60 leading-none">Score</div>
+                    <div class="text-2xl md:text-3xl font-black text-pink-400 leading-none" id="score">0</div>
+                </div>
+            </div>
+            <div id="timer-box" class="bg-black/60 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-pink-500/30 text-right">
+                <div class="text-[10px] uppercase font-bold opacity-60 leading-none">Time</div>
+                <div class="text-2xl md:text-3xl font-mono font-black text-white leading-none" id="timer">2:00</div>
+            </div>
+        </div>
+        
+        <!-- Start Screen -->
+        <div id="start-screen" class="dialog-container">
+            <div class="menu-card">
+                <h1 class="text-2xl md:text-3xl font-black mb-1 text-pink-500 italic tracking-tighter uppercase">Food Gang's<br>Flower Stealer</h1>
+                <p class="text-xs opacity-90 mb-4 text-pink-100 px-2">Stop Valentine's! Tap the flowers to snatch them before the couples reach them.</p>
+                
+                <div class="bg-white/5 p-3 rounded-xl border border-white/10">
+                    <h2 class="text-[10px] font-bold uppercase text-pink-300 mb-2 tracking-widest">How to Play</h2>
+                    <div class="instruction-grid">
+                        <span>👆</span> <span><b>Tap</b> flowers to extend your vines.</span>
+                        <span>👫</span> <span><b>Be Fast!</b> Couples steal flowers on contact.</span>
+                    </div>
+                    
+                    <h2 class="text-[10px] font-bold uppercase text-blue-300 mt-4 mb-2 tracking-widest">Power-Ups</h2>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-black/30 p-2 rounded-lg text-[11px] flex items-center gap-2">
+                            <span>⚡</span> <span>Fast Fire</span>
+                        </div>
+                        <div class="bg-black/30 p-2 rounded-lg text-[11px] flex items-center gap-2">
+                            <span>❄️</span> <span>Freeze</span>
+                        </div>
+                        <div class="bg-black/30 p-2 rounded-lg text-[11px] flex items-center gap-2">
+                            <span>🪃</span> <span>Magnet</span>
+                        </div>
+                        <div class="bg-black/30 p-2 rounded-lg text-[11px] flex items-center gap-2">
+                            <span>🛡️</span> <span>Push</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn w-full mt-5" onclick="startGame()">Start Stealing</button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="hidden dialog-container">
+            <div class="menu-card">
+                <h1 class="text-3xl font-black mb-2 text-red-500 uppercase">Garden Raided!</h1>
+                <div class="my-4 bg-white/5 py-4 rounded-2xl">
+                    <p class="text-gray-400 uppercase text-[10px] font-bold tracking-[0.2em]">Flowers Collected</p>
+                    <p class="text-6xl font-black text-white" id="final-score">0</p>
+                </div>
+                <button class="btn w-full" onclick="location.reload()">Try Again</button>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+/** AUDIO SYSTEM */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(freq, type, duration, vol = 0.1) {
+    if (audioCtx.state === 'suspended') return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    } catch(e) {}
+}
+
+function playCollectSound() {
+    playTone(523.25, 'square', 0.1, 0.05);
+    setTimeout(() => playTone(783.99, 'square', 0.1, 0.04), 50);
+}
+
+function playFreezeSound() {
+    playTone(1000, 'sine', 0.5, 0.05);
+}
+
+let musicInterval;
+function startMusic() {
+    let step = 0;
+    musicInterval = setInterval(() => {
+        if (!gameActive) return;
+        if (step % 8 === 0) playTone(110, 'triangle', 0.4, 0.05);
+        step++;
+    }, 150);
+}
+
+/** GAME ENGINE */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const timerEl = document.getElementById('timer');
+
+let score = 0;
+let timeLeft = 120; // UPDATED: Changed from 180 to 120 (2 minutes)
+let gameActive = false;
+let animationId;
+let screenShake = 0;
+let scaleFactor = 1;
+
+const player = {
+    x: 0,
+    y: 0,
+    baseSize: 40,
+    size: 40,
+    power: null,
+    powerTimer: 0
+};
+
+const flowers = [];
+const couples = [];
+const particles = [];
+const floatingTexts = [];
+const tentacles = [];
+
+class Tentacle {
+    constructor(targetX, targetY, flower) {
+        this.startX = player.x;
+        this.startY = player.y;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.progress = 0; 
+        this.speed = (player.power === 'lightning') ? 0.25 : 0.12;
+        this.flower = flower;
+        this.isDone = false;
+        this.color = '#2d6a4f';
+        if (player.power === 'lightning') this.color = '#fee440';
+        if (player.power === 'ice') this.color = '#a2d2ff';
+    }
+
+    update() {
+        this.progress += this.speed;
+        if (this.progress >= 1 && this.flower && flowers.includes(this.flower)) {
+            collectFlower(this.flower, flowers.indexOf(this.flower));
+            this.flower = null;
+        }
+        if (this.progress >= 2) {
+            this.isDone = true;
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 6 * scaleFactor;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = player.power ? 10 : 0;
+        ctx.shadowColor = this.color;
+        ctx.beginPath();
+        ctx.moveTo(this.startX, this.startY);
+        
+        let currentX, currentY;
+        if (this.progress <= 1) {
+            currentX = this.startX + (this.targetX - this.startX) * this.progress;
+            currentY = this.startY + (this.targetY - this.startY) * this.progress;
+        } else {
+            const pullBack = 2 - this.progress;
+            currentX = this.startX + (this.targetX - this.startX) * pullBack;
+            currentY = this.startY + (this.targetY - this.startY) * pullBack;
+        }
+
+        const midX = (this.startX + currentX) / 2 + Math.sin(this.progress * 5) * (20 * scaleFactor);
+        const midY = (this.startY + currentY) / 2 + Math.cos(this.progress * 5) * (20 * scaleFactor);
+        ctx.quadraticCurveTo(midX, midY, currentX, currentY);
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+class FloatingText {
+    constructor(x, y, text, color) {
+        this.x = x; this.y = y; this.text = text; this.color = color;
+        this.life = 1.0;
+    }
+    draw() {
+        this.y -= 1;
+        this.life -= 0.02;
+        ctx.save();
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.font = `bold ${18 * scaleFactor}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText(this.text, this.x, this.y);
+        ctx.restore();
+    }
+}
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x; this.y = y;
+        this.vx = (Math.random() - 0.5) * 8 * scaleFactor;
+        this.vy = (Math.random() - 0.5) * 8 * scaleFactor;
+        this.life = 1.0;
+        this.color = color;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life -= 0.03;
+    }
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = this.life;
+        ctx.fillRect(this.x, this.y, 4 * scaleFactor, 4 * scaleFactor);
+    }
+}
+
+class Flower {
+    constructor(isSpecial = false) {
+        this.spawn();
+        this.isSpecial = isSpecial;
+        this.type = isSpecial ? ['boomerang', 'lightning', 'forcefield', 'ice'][Math.floor(Math.random() * 4)] : 'normal';
+        this.pulse = Math.random() * Math.PI;
+        this.hitbox = 40 * scaleFactor;
+    }
+
+    spawn() {
+        const padding = 60 * scaleFactor;
+        this.x = Math.random() * (canvas.width - padding * 2) + padding;
+        this.y = Math.random() * (canvas.height - padding * 2) + padding;
+        
+        // Ensure not spawning on player
+        const dx = this.x - player.x;
+        const dy = this.y - player.y;
+        if (Math.sqrt(dx*dx + dy*dy) < 100 * scaleFactor) {
+            this.spawn();
+        }
+    }
+
+    draw() {
+        this.pulse += 0.08;
+        const scale = (1 + Math.sin(this.pulse) * 0.1) * scaleFactor;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.scale(scale, scale);
+        
+        let color = '#ff85a1';
+        if (this.isSpecial) {
+            if (this.type === 'boomerang') color = '#4cc9f0';
+            else if (this.type === 'lightning') color = '#fee440';
+            else if (this.type === 'forcefield') color = '#9d4edd';
+            else if (this.type === 'ice') color = '#a2d2ff';
+        }
+
+        ctx.fillStyle = color;
+        for (let i = 0; i < 5; i++) {
+            ctx.rotate((Math.PI * 2) / 5);
+            ctx.beginPath();
+            ctx.ellipse(7, 0, 7, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(0, 0, 3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        if (this.isSpecial) {
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = color;
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+        
+        ctx.restore();
+    }
+}
+
+class Couple {
+    constructor() {
+        this.reset();
+        this.status = null; 
+        this.statusTimer = 0;
+    }
+    reset() {
+        const side = Math.floor(Math.random() * 4);
+        const margin = 100;
+        if (side === 0) { this.x = -margin; this.y = Math.random() * canvas.height; }
+        else if (side === 1) { this.x = canvas.width + margin; this.y = Math.random() * canvas.height; }
+        else if (side === 2) { this.x = Math.random() * canvas.width; this.y = -margin; }
+        else { this.x = Math.random() * canvas.width; this.y = canvas.height + margin; }
+        this.speed = (1.2 + Math.random() * 1.5) * scaleFactor;
+        this.target = null;
+        this.status = null;
+        this.statusTimer = 0;
+    }
+    update() {
+        if (this.statusTimer > 0) {
+            this.statusTimer--;
+            if (this.statusTimer <= 0) this.status = null;
+            return;
+        }
+
+        if (player.power === 'forcefield' && player.powerTimer > 0) {
+            const dx = this.x - player.x;
+            const dy = this.y - player.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 180 * scaleFactor) {
+                this.x += (dx / dist) * 10 * scaleFactor;
+                this.y += (dy / dist) * 10 * scaleFactor;
+                return;
+            }
+        }
+
+        if (!this.target || !flowers.includes(this.target)) {
+            let minDist = Infinity;
+            flowers.forEach(f => {
+                const d = Math.sqrt((f.x - this.x)**2 + (f.y - this.y)**2);
+                if (d < minDist) { minDist = d; this.target = f; }
+            });
+        }
+
+        if (this.target) {
+            const dx = this.target.x - this.x;
+            const dy = this.target.y - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 5) {
+                this.x += (dx / dist) * this.speed;
+                this.y += (dy / dist) * this.speed;
+            }
+            if (dist < 20 * scaleFactor) {
+                const idx = flowers.indexOf(this.target);
+                if (idx > -1) {
+                    flowers.splice(idx, 1);
+                    for(let i=0; i<5; i++) particles.push(new Particle(this.x, this.y, '#555'));
+                }
+                this.target = null;
+            }
+        }
+    }
+    draw() {
+        ctx.save();
+        let shake = 0;
+        if (this.status === 'stunned') {
+            ctx.fillStyle = 'rgba(254, 228, 64, 0.3)';
+            ctx.beginPath(); ctx.arc(this.x, this.y, 25 * scaleFactor, 0, Math.PI*2); ctx.fill();
+            shake = (Math.random()-0.5) * 4;
+        } else if (this.status === 'frozen') {
+            ctx.fillStyle = 'rgba(162, 210, 255, 0.5)';
+            ctx.beginPath(); ctx.arc(this.x, this.y, 30 * scaleFactor, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.stroke();
+        }
+
+        ctx.font = `${28 * scaleFactor}px serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('👩‍❤️‍👨', this.x + shake, this.y + (10 * scaleFactor));
+        
+        if (this.status) {
+            const icon = this.status === 'stunned' ? '⚡' : '❄️';
+            ctx.font = `bold ${12 * scaleFactor}px sans-serif`;
+            ctx.fillStyle = "white";
+            ctx.fillText(icon + " " + Math.ceil(this.statusTimer/60) + "s", this.x, this.y - (30 * scaleFactor));
+        }
+        ctx.restore();
+    }
+}
+
+/** INTERACTION */
+function handleInput(clientX, clientY) {
+    if (!gameActive) return;
+    
+    let found = false;
+    let closest = null;
+    let minDist = 60 * scaleFactor; // Tap tolerance
+
+    flowers.forEach((f, i) => {
+        const d = Math.sqrt((f.x - clientX)**2 + (f.y - clientY)**2);
+        if (d < minDist) {
+            minDist = d;
+            closest = f;
+        }
+    });
+
+    if (closest) {
+        tentacles.push(new Tentacle(closest.x, closest.y, closest));
+        found = true;
+    }
+
+    if (!found) {
+        for(let j=0; j<3; j++) particles.push(new Particle(clientX, clientY, 'rgba(255,255,255,0.2)'));
+    }
+}
+
+window.addEventListener('pointerdown', e => handleInput(e.clientX, e.clientY));
+
+function update() {
+    if (!gameActive) return;
+
+    if (player.powerTimer > 0) {
+        player.powerTimer--;
+        if (player.powerTimer <= 0) player.power = null;
+    }
+
+    if (player.power === 'boomerang') {
+        flowers.forEach((f, i) => {
+            const d = Math.sqrt((f.x - player.x)**2 + (f.y - player.y)**2);
+            if (d < 220 * scaleFactor) {
+                f.x += (player.x - f.x) * 0.08;
+                f.y += (player.y - f.y) * 0.08;
+                if (d < 45 * scaleFactor) collectFlower(f, i);
+            }
+        });
+    }
+
+    tentacles.forEach((t, i) => {
+        t.update();
+        if (t.isDone) tentacles.splice(i, 1);
+    });
+
+    couples.forEach(c => c.update());
+    particles.forEach((p, i) => { p.update(); if (p.life <= 0) particles.splice(i, 1); });
+    floatingTexts.forEach((t, i) => { if (t.life <= 0) floatingTexts.splice(i, 1); });
+
+    if (Math.random() < 0.04) spawnFlower();
+    if (screenShake > 0) screenShake *= 0.9;
+}
+
+function collectFlower(f, i) {
+    if (f.isSpecial) {
+        player.power = f.type;
+        player.powerTimer = 450;
+        screenShake = 12;
+        
+        if (f.type === 'lightning') {
+            couples.forEach(c => { c.status = 'stunned'; c.statusTimer = 180; });
+            playTone(800, 'sawtooth', 0.2, 0.08);
+        } else if (f.type === 'ice') {
+            couples.forEach(c => { c.status = 'frozen'; c.statusTimer = 300; });
+            playFreezeSound();
+        } else {
+            playTone(400, 'sine', 0.2, 0.08);
+        }
+        floatingTexts.push(new FloatingText(f.x, f.y, f.type.toUpperCase() + "!", "#fff"));
+    } else {
+        score++;
+        playCollectSound();
+        scoreEl.innerText = score;
+        floatingTexts.push(new FloatingText(f.x, f.y, "+1", "#ff85a1"));
+    }
+    for(let j=0; j<10; j++) particles.push(new Particle(f.x, f.y, f.isSpecial ? '#fff' : '#ff85a1'));
+    flowers.splice(i, 1);
+}
+
+function draw() {
+    ctx.save();
+    if (screenShake > 1) {
+        ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
+    }
+    
+    // Background
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    const gridSize = 60 * scaleFactor;
+    for(let x=0; x<canvas.width; x+=gridSize) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+    for(let y=0; y<canvas.height; y+=gridSize) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+
+    flowers.forEach(f => f.draw());
+    tentacles.forEach(t => t.draw());
+    couples.forEach(c => c.draw());
+    particles.forEach(p => p.draw());
+
+    // Draw Player
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    
+    if (player.power === 'forcefield') {
+        ctx.beginPath(); ctx.arc(0,0, 180 * scaleFactor, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(157, 78, 221, 0.08)'; ctx.fill();
+        ctx.strokeStyle = '#9d4edd'; ctx.setLineDash([10, 5]); ctx.stroke();
+    } else if (player.power === 'ice') {
+        ctx.beginPath(); ctx.arc(0,0, 60 * scaleFactor, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(162, 210, 255, 0.2)'; ctx.fill();
+    }
+
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(0, 22*scaleFactor, 20*scaleFactor, 8*scaleFactor, 0, 0, Math.PI*2); ctx.fill();
+
+    let bodyColor = '#ff4d6d';
+    if (player.power === 'lightning' && Math.floor(Date.now()/50)%2===0) bodyColor = '#fee440';
+    if (player.power === 'ice') bodyColor = '#a2d2ff';
+    
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.moveTo(0, -25*scaleFactor);
+    ctx.quadraticCurveTo(25*scaleFactor, -20*scaleFactor, 25*scaleFactor, 15*scaleFactor);
+    ctx.quadraticCurveTo(0, 32*scaleFactor, -25*scaleFactor, 15*scaleFactor);
+    ctx.quadraticCurveTo(-25*scaleFactor, -20*scaleFactor, 0, -25*scaleFactor);
+    ctx.fill();
+
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); 
+    ctx.arc(-10*scaleFactor, -2*scaleFactor, 4*scaleFactor, 0, Math.PI*2); 
+    ctx.arc(10*scaleFactor, -2*scaleFactor, 4*scaleFactor, 0, Math.PI*2); 
+    ctx.fill();
+    
+    ctx.fillStyle = '#40916c';
+    ctx.beginPath(); 
+    ctx.moveTo(0, -25*scaleFactor); 
+    ctx.lineTo(-15*scaleFactor, -35*scaleFactor); 
+    ctx.lineTo(0, -30*scaleFactor); 
+    ctx.lineTo(15*scaleFactor, -35*scaleFactor); 
+    ctx.fill();
+    ctx.restore();
+
+    floatingTexts.forEach(t => t.draw());
+    ctx.restore();
+
+    animationId = requestAnimationFrame(() => {
+        update();
+        draw();
+    });
+}
+
+function spawnFlower() {
+    if (flowers.length < 35) {
+        flowers.push(new Flower(Math.random() < 0.15));
+    }
+}
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    player.x = canvas.width / 2;
+    player.y = canvas.height / 2;
+    
+    // Scale game based on screen width
+    scaleFactor = Math.min(canvas.width, canvas.height) / 600;
+    if (scaleFactor < 0.8) scaleFactor = 0.8;
+}
+
+function startGame() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    document.getElementById('start-screen').classList.add('hidden');
+    gameActive = true;
+    startMusic();
+    for(let i=0; i<12; i++) spawnFlower();
+    for(let i=0; i<6; i++) couples.push(new Couple());
+
+    const timerInterval = setInterval(() => {
+        if (!gameActive) { clearInterval(timerInterval); return; }
+        timeLeft--;
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        timerEl.innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        if (timeLeft <= 0) { clearInterval(timerInterval); endGame(); }
+    }, 1000);
+
+    resize();
+    draw();
+}
+
+function endGame() {
+    gameActive = false;
+    cancelAnimationFrame(animationId);
+    clearInterval(musicInterval);
+    document.getElementById('game-over-screen').classList.remove('hidden');
+    document.getElementById('final-score').innerText = score;
+}
+
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 100));
+resize();
+</script>
+</body>
+</html>
